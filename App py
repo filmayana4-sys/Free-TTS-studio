@@ -1,0 +1,72 @@
+import streamlit as st
+import asyncio
+from edge_tts import Communicate
+import os
+
+# Page Configuration - Premium Dark Look
+st.set_page_config(page_title="Echo AI Studio", page_icon="🎙️", layout="centered")
+
+# Custom Premium CSS for Premium UI
+st.markdown("""
+    <style>
+    .main { background-color: #0B0F19; color: #F3F4F6; }
+    h1 { color: #6366F1; text-align: center; font-weight: 800; }
+    .stButton>button { background-color: #4F46E5; color: white; border-radius: 12px; width: 100%; font-size: 18px; padding: 10px; }
+    .stButton>button:hover { background-color: #4338CA; }
+    </style>
+""", unsafe_gradient=True)
+
+st.title("🎙️ Echo AI Studio")
+st.write("Convert your text into realistic premium AI audio for FREE!")
+
+# Text Input
+text_input = st.text_area("Input Text Sequence", placeholder="Type your text here...", height=150)
+st.caption(f"Characters: {len(text_input)}/2000")
+
+# Controls Grid
+col1, col2 = st.columns(2)
+with col1:
+    voice = st.selectbox("Select Voice Actor", [
+        "en-US-ChristopherNeural (Male - US)",
+        "en-US-EmmaNeural (Female - US)",
+        "en-GB-RyanNeural (Male - UK)",
+        "ur-PK-AsadNeural (Male - Pakistan)",
+        "ur-PK-UzmaNeural (Female - Pakistan)",
+        "hi-IN-MadhurNeural (Male - India)"
+    ])
+with col2:
+    speed = st.selectbox("Pacing Speed", ["Normal", "Fast (+20%)", "Slow (-20%)"])
+
+# Speed mapping
+rate = "+0%" if speed == "Normal" else ("+20%" if "Fast" in speed else "-20%")
+voice_id = voice.split(" ")
+
+async def generate_audio(text, voice, rate):
+    communicate = Communicate(text, voice, rate=rate)
+    await communicate.save("output.mp3")
+
+# Generate Button
+if st.button("✨ Synthesize Free Audio"):
+    if not text_input.strip():
+        st.error("Please enter some text first!")
+    elif len(text_input) > 2000:
+        st.error("Text exceeds 2000 characters!")
+    else:
+        with st.spinner("⚡ AI is synthesizing your voice... Please wait..."):
+            try:
+                # Run the async TTS generation
+                asyncio.run(generate_audio(text_input, voice_id, rate))
+                
+                # Play and Download Section
+                st.success("🎉 Successfully Generated!")
+                st.audio("output.mp3", format="audio/mp3")
+                
+                with open("output.mp3", "rb") as file:
+                    st.download_button(
+                        label="📥 Download MP3 Audio",
+                        data=file,
+                        file_name="echo_ai_audio.mp3",
+                        mime="audio/mp3"
+                    )
+            except Exception as e:
+                st.error(f"Error: {str(e)}")
